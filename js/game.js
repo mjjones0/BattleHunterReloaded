@@ -340,6 +340,7 @@ export default class MainGame extends Phaser.Scene
             .on('button.click', function (button, groupName, index) {
                 if (index == 0) {
                     this.exitGame();
+                    this.dialogOpen = false;
                 } else if (index == 1) {
                     this.dialog.setVisible(false);
                     this.dialogOpen = false;
@@ -378,6 +379,7 @@ export default class MainGame extends Phaser.Scene
             this.clearInputHandlers();
             this.clearRenderProjection();
             this.scene.start('MainMenu');
+            this.scene.stop();
         }, this);
     }
 

@@ -7,8 +7,8 @@ let Constants = {
 		BG_COLOR: '#000000',
 		TITLE: 'Battle Hunter Reloaded',
 		PLAY_STATES: {'INTRO': 0, 'PLAY': 1, 'FINISH': 2},
-		ROWS: 68,
-		COLS: 75,
+		ROWS: 24,
+		COLS: 16,
 		TILE_WIDTH: 38,
 		TILE_HEIGHT: 38
 	},
