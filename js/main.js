@@ -2,6 +2,7 @@ import Boot from './boot.js';
 import Preloader from './preloader.js';
 import MainMenu from './menu.js';
 import MainGame from './game.js';
+import Options from './options.js';
 import Constants from './constants.js'
 
 const config = {
@@ -10,7 +11,7 @@ const config = {
     height: Constants.Game.HEIGHT,
     backgroundColor: Constants.Game.BG_COLOR,
     parent: 'game',
-    scene: [ Boot, Preloader, MainMenu, MainGame ],
+    scene: [ Boot, Preloader, MainMenu, MainGame, Options ],
     physics: {
         default: 'arcade',
         arcade: { debug: false }

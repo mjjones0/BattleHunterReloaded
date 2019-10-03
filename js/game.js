@@ -1,5 +1,6 @@
 import Constants from './constants.js';
 import Utils from './utils.js';
+import Sounds from './sounds.js';
 
 export default class MainGame extends Phaser.Scene
 {
@@ -15,6 +16,10 @@ export default class MainGame extends Phaser.Scene
             url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/plugins/dist/rexuiplugin.min.js',
             sceneKey: 'rexUI'
         });
+
+        Sounds.addMusic('theme_0', this.sound.add('theme_0'));
+        Sounds.addMusic('theme_1', this.sound.add('theme_1'));
+        Sounds.addMusic('theme_2', this.sound.add('theme_2'));
     }
 
     create ()
@@ -26,12 +31,11 @@ export default class MainGame extends Phaser.Scene
                     .setDepth(Constants.Depths.BACKGROUND);
 
         var music = 'theme_' + Math.floor(Math.random() * 3).toString();
-        this.music = this.sound.add(music);
-        this.music.loop = true;
+        this.musicKey = music;
 
         // play it as we're fading in but not immediately
         this.time.delayedCall(250, function() {
-			this.music.play();
+			Sounds.playMusic(music, true);
         }, [], this);
 
         this.input.keyboard.on('keydown-ESC', this.back, this);
@@ -40,7 +44,7 @@ export default class MainGame extends Phaser.Scene
         this.changeState(Constants.Game.PLAY_STATES.INTRO);
 
         // make our own handlers because built-in don't like isometric
-        this.input.on('pointerdown', this.handlePointerDown, this);
+        this.input.on('pointerdown', this.handleIsometricScenePointerDown, this);
 
         this.inputEnabled = false;
     }
@@ -53,17 +57,12 @@ export default class MainGame extends Phaser.Scene
         this.player.row = Math.floor(Math.random() * Constants.Game.ROWS);
         this.player.col = Math.floor(Math.random() * Constants.Game.COLS);
 
-        console.log(this.tiles.length + " - rows");
-        console.log(this.tiles[0].length + " - cols");
-
         this.setupMap();
         this.setupUI();
         this.setupRenderProjection();
 
         this.cameras.main.setSize(Constants.Game.WIDTH * 4, 
                                   Constants.Game.HEIGHT * 4);
-        //this.cameras.main.scrollX = ;
-        //this.cameras.main.scrollY = ;
 
         var tweens = this.tweens;
         var camera = this.cameras.main;
@@ -79,25 +78,25 @@ export default class MainGame extends Phaser.Scene
             targets: this.cameras.main,
             scrollX: {from: topTileScroll.x, to: rightTileScroll.x},
             scrollY: {from: topTileScroll.y, to: rightTileScroll.y},
-            duration: 2000
+            duration: 1500
         };
         var panCameraDown = {
             targets: this.cameras.main,
             scrollX: {from: rightTileScroll.x, to: downTileScroll.x},
             scrollY: {from: rightTileScroll.y, to: downTileScroll.y},
-            duration: 2000
+            duration: 1500
         };
         var panCameraLeft = {
             targets: this.cameras.main,
             scrollX: {from: downTileScroll.x, to: leftTileScroll.x},
             scrollY: {from: downTileScroll.y, to: leftTileScroll.y},
-            duration: 2000
+            duration: 1500
         };
         var panCameraUp = {
             targets: this.cameras.main,
             scrollX: {from: leftTileScroll.x, to: topTileScroll.x},
             scrollY: {from: leftTileScroll.y, to: topTileScroll.y},
-            duration: 2000
+            duration: 1500
         };
         var panToPlayer = {
             targets: this.cameras.main,
@@ -153,31 +152,32 @@ export default class MainGame extends Phaser.Scene
         return { x: scrollX, y: scrollY };
     }
 
-    handlePointerDown(event) 
+    handleIsometricScenePointerDown(event) 
     {
-        if (!this.inputEnabled) {
+        if (!this.inputEnabled || this.dialogOpen) {
+            //console.log('blocked input');
             return;
         }
 
         var screenX = event.x + this.cameras.main.scrollX - Constants.Game.WIDTH / 2 + Constants.Game.TILE_WIDTH / 2;
         var screenY = event.y + this.cameras.main.scrollY - Constants.Game.HEIGHT / 2 + Constants.Game.TILE_HEIGHT / 2;
-        console.log(this.cameras.main.scrollX + ", " + this.cameras.main.scrollY);
+        //console.log(this.cameras.main.scrollX + ", " + this.cameras.main.scrollY);
         var cartXY = Utils.IsometricToCartesian(screenX, screenY);
         var tileX = Math.floor(cartXY.x / Constants.Game.TILE_WIDTH);
         var tileY = Math.floor(cartXY.y / Constants.Game.TILE_HEIGHT);
 
-        console.log(tileX + ", " + tileY);
-        console.log(screenX + ", " + screenY);
+        //console.log(tileX + ", " + tileY);
+        //console.log(screenX + ", " + screenY);
 
         if (tileX >= 0 && tileX < Constants.Game.ROWS && 
             tileY >= 0 && tileY < Constants.Game.COLS) {
-            console.log(this.tiles);
-            console.log(event);
-            console.log(tileX + ", " + tileY);
+            //console.log(this.tiles);
+            //console.log(event);
+            //console.log(tileX + ", " + tileY);
             var tile = this.tiles[tileX][tileY];
 
             var player = this.player;
-            console.log(player.row + ", " + player.col);
+            //console.log(player.row + ", " + player.col);
             var playerTile = this.tiles[player.row][player.col];
 
             playerTile.clearTint();
@@ -206,12 +206,10 @@ export default class MainGame extends Phaser.Scene
 
     setupMap() 
     {
-        console.log(this.tiles);
         this.tileGroup = this.add.group();
         var tile;
         for (var row = 0; row < Constants.Game.ROWS; row += 1) {
             for (var col = 0; col < Constants.Game.COLS; col += 1) {
-                console.log("Row, Col: " + row + ", " + col);
                 tile = this.add.sprite(row * Constants.Game.TILE_WIDTH, col * Constants.Game.TILE_HEIGHT, 'tile');
                 this.tileGroup.add(tile);
                 this.tiles[row][col] = tile;
@@ -245,44 +243,55 @@ export default class MainGame extends Phaser.Scene
 
     }
 
-    getRandomTile(rows, cols)
-    {
-
-    }
-
     setupRenderProjection ()
     {
+        this.game.events.on('prerender', this.projectIsometric, this);
+        this.game.events.on('postrender', this.unprojectIsometric, this);
+    }
+
+    clearRenderProjection ()
+    {
+        this.game.events.off('prerender', this.projectIsometric, this);
+        this.game.events.off('postrender', this.unprojectIsometric, this);
+    }
+
+    clearInputHandlers ()
+    {
+        this.input.keyboard.off('keydown-ESC', this.back, this);
+        this.input.off('pointerdown', this.handlePointerDown, this);
+    }
+
+    projectIsometric (renderer, time, delta) {
         var tile;
-        this.game.events.on('prerender', function(renderer, time, delta){
-            for (var xx = 0; xx < Constants.Game.ROWS; xx += 1) {
-                for (var yy = 0; yy < Constants.Game.COLS; yy += 1) {
-                    tile = this.tiles[xx][yy];
-                    tile.oldX = tile.x;
-                    tile.oldY = tile.y;
-                    
-                    // isometric transform
-                    tile.x = tile.x - tile.y;
-                    tile.y = (tile.oldX + tile.y) / 2;
+        for (var xx = 0; xx < Constants.Game.ROWS; xx += 1) {
+            for (var yy = 0; yy < Constants.Game.COLS; yy += 1) {
+                tile = this.tiles[xx][yy];
+                tile.oldX = tile.x;
+                tile.oldY = tile.y;
+                
+                // isometric transform
+                tile.x = tile.x - tile.y;
+                tile.y = (tile.oldX + tile.y) / 2;
 
-                    // screen transform
-                    tile.x += Constants.Game.WIDTH / 2;
-                    tile.y += Constants.Game.HEIGHT / 2;
+                // screen transform
+                tile.x += Constants.Game.WIDTH / 2;
+                tile.y += Constants.Game.HEIGHT / 2;
 
-                    // fudged Z - inverse because of screen coords
-                    tile.y -= tile.isoZ;
-                }
+                // fudged Z - inverse because of screen coords
+                tile.y -= tile.isoZ;
             }
-        }, this);
+        }
+    }
 
-        this.game.events.on('postrender', function(renderer, time, delta){
-            for (var xx = 0; xx < Constants.Game.ROWS; xx += 1) {
-                for (var yy = 0; yy < Constants.Game.COLS; yy += 1) {
-                    tile = this.tiles[xx][yy];
-                    tile.x = tile.oldX;
-                    tile.y = tile.oldY;
-                }
+    unprojectIsometric (renderer, time, delta) {
+        var tile;
+        for (var xx = 0; xx < Constants.Game.ROWS; xx += 1) {
+            for (var yy = 0; yy < Constants.Game.COLS; yy += 1) {
+                tile = this.tiles[xx][yy];
+                tile.x = tile.oldX;
+                tile.y = tile.oldY;
             }
-        }, this);
+        }
     }
 
     setupBackDialog () 
@@ -325,27 +334,15 @@ export default class MainGame extends Phaser.Scene
             // .drawBounds(this.add.graphics(), 0xff0000)
             .popUp(1000);
 
+        var scene = this;
         this.print = this.add.text(0, 0, '');
         dialog
             .on('button.click', function (button, groupName, index) {
                 if (index == 0) {
-                    this.transitioningOut = true;
-                    this.dialog.setVisible(false);
-                    this.tweens.add({
-                        targets: this.music, 
-                        volume: 0,
-                        duration: 500,
-                        onComplete: function () {
-                            this.music.stop();
-                        }
-                    });
-                    this.cameras.main.fadeOut(500);
-                    this.cameras.main.on('camerafadeoutcomplete', function() {
-                        this.transitioningOut = false;
-                        this.scene.start('MainMenu');
-                    }, this);
+                    this.exitGame();
                 } else if (index == 1) {
                     this.dialog.setVisible(false);
+                    this.dialogOpen = false;
                 }
             }, this)
             .on('button.over', function (button, groupName, index) {
@@ -357,6 +354,31 @@ export default class MainGame extends Phaser.Scene
         
         this.dialog = dialog;
         this.dialog.setVisible(false);
+        this.dialog.setScrollFactor(0, 0);
+        this.dialog.setDepth(Constants.Depths.UX);
+    }
+
+    exitGame ()
+    {
+        var scene = this;
+        this.transitioningOut = true;
+        this.dialog.setVisible(false);
+        this.tweens.add({
+            targets: this.music, 
+            volume: 0,
+            duration: 500,
+            onComplete: function () {
+                Sounds.stopMusic(scene.musicKey);
+                scene.tweens.killAll();
+            }
+        });
+        this.cameras.main.fadeOut(500);
+        this.cameras.main.on('camerafadeoutcomplete', function() {
+            this.transitioningOut = false;
+            this.clearInputHandlers();
+            this.clearRenderProjection();
+            this.scene.start('MainMenu');
+        }, this);
     }
 
     createLabel (scene, text) {
@@ -382,6 +404,7 @@ export default class MainGame extends Phaser.Scene
     back ()
     {
         if (!this.transitioningOut) {
+            this.dialogOpen = true;
             this.dialog.setVisible(true);
         }
     }
