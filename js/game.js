@@ -17,9 +17,23 @@ export default class MainGame extends Phaser.Scene
             sceneKey: 'rexUI'
         });
 
-        Sounds.addMusic('theme_0', this.sound.add('theme_0'));
-        Sounds.addMusic('theme_1', this.sound.add('theme_1'));
-        Sounds.addMusic('theme_2', this.sound.add('theme_2'));
+        Sounds.addMusic('theme_0',          this.sound.add('theme_0'));
+        Sounds.addMusic('theme_1',          this.sound.add('theme_1'));
+        Sounds.addMusic('theme_2',          this.sound.add('theme_2'));
+        Sounds.addSound('ding',             this.sound.add('ding'));
+        Sounds.addSound('menu_cancel',      this.sound.add('menu_cancel'));
+        Sounds.addSound('menu_confirm',     this.sound.add('menu_confirm'));
+        Sounds.addSound('menu_move',        this.sound.add('menu_move'));
+        Sounds.addSound('tic_toc_click',    this.sound.add('tic_toc_click'));
+        Sounds.addSound('quick_notice',     this.sound.add('quick_notice'));
+        Sounds.addSound('med_notice',       this.sound.add('med_notice'));
+    }
+
+    init (data)
+    {
+        console.log("init");
+        this.states = {};
+        this.states['missionType'] = data.missionType;
     }
 
     create ()
@@ -32,6 +46,7 @@ export default class MainGame extends Phaser.Scene
 
         var music = 'theme_' + Math.floor(Math.random() * 3).toString();
         this.musicKey = music;
+        this.states['theme'] = Constants.Game.THEMES[music];
 
         // play it as we're fading in but not immediately
         this.time.delayedCall(250, function() {
@@ -41,31 +56,94 @@ export default class MainGame extends Phaser.Scene
         this.input.keyboard.on('keydown-ESC', this.back, this);
         
         this.setupBackDialog();
-        this.changeState(Constants.Game.PLAY_STATES.INTRO);
 
         // make our own handlers because built-in don't like isometric
         this.input.on('pointerdown', this.handleIsometricScenePointerDown, this);
 
         this.inputEnabled = false;
+
+        this.initPlayer();
+        this.changeState(Constants.Game.PLAY_STATES.INTRO);
+
+        this.cursorKeys = this.input.keyboard.createCursorKeys();
+    }
+
+    initPlayer()
+    {
+        this.player = this.add.sprite(0, 0, 'hero', '1.png').setOrigin(0.5, 0.85).setDepth(Constants.Depths.ACTORS);
+
+        // animation
+        this.anims.create({key: 'southEast', frames: this.anims.generateFrameNames('hero', {start: 29, end: 32, suffix: '.png'}), 
+            frameRate: 6, repeat: 0});
+        this.anims.create({key: 'southWest', frames: this.anims.generateFrameNames('hero', {start: 5, end: 8, suffix: '.png'}), 
+            frameRate: 6, repeat: 0});
+        this.anims.create({key: 'northWest', frames: this.anims.generateFrameNames('hero', {start: 13, end: 16, suffix: '.png'}), 
+            frameRate: 6, repeat: 0});
+        this.anims.create({key: 'northEast', frames: this.anims.generateFrameNames('hero', {start: 21, end: 24, suffix: '.png'}), 
+            frameRate: 6, repeat: 0});
+
+        console.log(this.anims);
+
+        this.player.play('southEast');
     }
 
     startGame()
     {
         this.state = Constants.Game.PLAY_STATES.INTRO;
-        this.player = {};
         this.tiles = Utils.create2DArray(Constants.Game.ROWS, Constants.Game.COLS);
         this.player.row = Math.floor(Math.random() * Constants.Game.ROWS);
         this.player.col = Math.floor(Math.random() * Constants.Game.COLS);
+
+        this.player.x = this.player.row * Constants.Game.TILE_WIDTH;
+        this.player.y = this.player.col * Constants.Game.TILE_HEIGHT;
 
         this.setupMap();
         this.setupUI();
         this.setupRenderProjection();
 
-        this.cameras.main.setSize(Constants.Game.WIDTH * 4, 
-                                  Constants.Game.HEIGHT * 4);
+        this.cameras.main.setSize(Constants.Game.WIDTH, 
+                                  Constants.Game.HEIGHT);
 
+        this.startIntroTransition();
+    }
+
+    detectKeyInput() {
+        var facing;
+    
+        if (this.cursorKeys.right.isDown) {
+            facing = 'southEast';
+        }
+        if (this.cursorKeys.down.isDown) {
+            facing = 'southWest';
+        }
+        if (this.cursorKeys.up.isDown) {
+            facing = 'northEast';
+        }
+        if (this.cursorKeys.left.isDown) {
+            facing = 'northWest';
+        }
+
+        this.animate(facing);
+    }
+
+    animate (facing) {
+        if (this.player.pathfinding) {
+            return;
+        }
+
+        if (facing) {
+            this.player.facing = facing;
+            this.player.play(facing, true);
+            this.player.moving = true;
+        } else {
+            this.player.anims.pause();
+            this.player.moving = false;
+        }
+    }
+
+    startIntroTransition()
+    {
         var tweens = this.tweens;
-        var camera = this.cameras.main;
         var scene = this;
 
         // tween camera around map
@@ -118,8 +196,54 @@ export default class MainGame extends Phaser.Scene
         }
         panToPlayer.onComplete = function () {
             // show summary popup
-            // on complete, change state
-            scene.changeState(Constants.Game.PLAY_STATES.PLAY);
+            scene.summaryFade = scene.add.rectangle(Constants.Game.WIDTH / 2, Constants.Game.HEIGHT / 2, 
+                Constants.Game.WIDTH, Constants.Game.HEIGHT, 0x000000);
+            scene.summaryFade.setAlpha(0.7);
+            scene.summaryFade.setDepth(Constants.Depths.UX);
+            scene.summaryFade.setScrollFactor(0, 0);
+
+            // fade in the text
+            scene.missionText = scene.add.text(100, Constants.Game.HEIGHT * 0.25, 'Mission Type: ' + scene.states['missionType'], {
+                fontSize: '36px', color: '#ffff00'
+            }).setDepth(Constants.Depths.UX).setScrollFactor(0, 0).setAlpha(0.0);
+
+            scene.musicText = scene.add.text(100, Constants.Game.HEIGHT * 0.25 + 40, 'Music: ' + scene.states['theme'], {
+                fontSize: '36px', color: '#ffff00'
+            }).setDepth(Constants.Depths.UX).setScrollFactor(0, 0).setAlpha(0.0);
+
+            scene.tweens.add({
+                targets: scene.missionText,
+                alpha: {from: 0.0, to: 1.0},
+                duration: 300,
+                onComplete: function () {
+                    scene.time.delayedCall(100, function() {
+                        scene.tweens.add({
+                            targets: scene.musicText,
+                            alpha: {from: 0.0, to: 1.0},
+                            duration: 300,
+                        })
+                    }, [], scene);
+                }
+            });
+
+            scene.time.delayedCall(150, function() {
+                Sounds.playSound('med_notice');
+            }, [], scene);
+
+            scene.time.delayedCall(550, function() {
+                Sounds.playSound('med_notice');
+            }, [], scene);
+
+            scene.time.delayedCall(2300, function() {
+                Utils.fadeOutDestroy(scene, scene.summaryFade, 500);
+                Utils.fadeOutDestroy(scene, scene.missionText, 500);
+                Utils.fadeOutDestroy(scene, scene.musicText, 500);
+            }, [], scene);
+
+            // done with intro animations, start the game
+            scene.time.delayedCall(2700, function() {
+                scene.changeState(Constants.Game.PLAY_STATES.PLAY);
+            }, [], scene);
         }
         this.tweens.add(panCameraRight);
     }
@@ -134,6 +258,8 @@ export default class MainGame extends Phaser.Scene
         } else if (newState === Constants.Game.PLAY_STATES.FINISH) {
             this.finish();
         }
+
+        this.state = newState;
     }
 
     getScrollForTile(row, col) 
@@ -199,9 +325,17 @@ export default class MainGame extends Phaser.Scene
             player.row = tileX;
             player.col = tileY;
 
+            player.x = player.row * Constants.Game.TILE_WIDTH;
+            player.y = player.col * Constants.Game.TILE_HEIGHT;
+
             tile.isoZ = 5;
             tile.setTint(0xff1212);
         }
+    }
+
+    generateRandomDungeon()
+    {
+
     }
 
     setupMap() 
@@ -210,7 +344,8 @@ export default class MainGame extends Phaser.Scene
         var tile;
         for (var row = 0; row < Constants.Game.ROWS; row += 1) {
             for (var col = 0; col < Constants.Game.COLS; col += 1) {
-                tile = this.add.sprite(row * Constants.Game.TILE_WIDTH, col * Constants.Game.TILE_HEIGHT, 'tile');
+                tile = this.add.sprite(row * Constants.Game.TILE_WIDTH, col * Constants.Game.TILE_HEIGHT, 'tile')
+                    .setDepth(Constants.Depths.TILES);
                 this.tileGroup.add(tile);
                 this.tiles[row][col] = tile;
                 tile.isoZ = 0;
@@ -281,6 +416,15 @@ export default class MainGame extends Phaser.Scene
                 tile.y -= tile.isoZ;
             }
         }
+
+        this.player.oldX = this.player.x;
+        this.player.oldY = this.player.y;
+
+        this.player.x = this.player.x - this.player.y;
+        this.player.y = (this.player.oldX + this.player.y) / 2;
+        
+        this.player.x += Constants.Game.WIDTH / 2;
+        this.player.y += Constants.Game.HEIGHT / 2;
     }
 
     unprojectIsometric (renderer, time, delta) {
@@ -292,6 +436,9 @@ export default class MainGame extends Phaser.Scene
                 tile.y = tile.oldY;
             }
         }
+
+        this.player.x = this.player.oldX;
+        this.player.y = this.player.oldY;
     }
 
     setupBackDialog () 
@@ -337,20 +484,23 @@ export default class MainGame extends Phaser.Scene
         var scene = this;
         this.print = this.add.text(0, 0, '');
         dialog
-            .on('button.click', function (button, groupName, index) {
+            .on('button.click', function (button, groupName, index, pointer, event) {
                 if (index == 0) {
                     this.exitGame();
-                    this.dialogOpen = false;
+                    //this.dialogOpen = false;
                 } else if (index == 1) {
                     this.dialog.setVisible(false);
-                    this.dialogOpen = false;
+                    //this.dialogOpen = false;
                 }
+                event.stopPropagation();
             }, this)
-            .on('button.over', function (button, groupName, index) {
+            .on('button.over', function (button, groupName, index, pointer, event) {
                 button.getElement('background').setStrokeStyle(1, 0xffffff);
+                event.stopPropagation();
             })
-            .on('button.out', function (button, groupName, index) {
+            .on('button.out', function (button, groupName, index, pointer, event) {
                 button.getElement('background').setStrokeStyle();
+                event.stopPropagation();
             });
         
         this.dialog = dialog;
@@ -416,11 +566,38 @@ export default class MainGame extends Phaser.Scene
 
     }
 
-    update ()
+    update (time, delta)
     {
         if (this.state === Constants.Game.PLAY_STATES.PLAY) 
         {
+            //console.log("updating play");
+
             // update player input
+            this.detectKeyInput();
+
+            var oldX = this.player.x;
+            var oldY = this.player.y;
+
+            var dir = this.player.facing;
+            if (this.player.moving) {
+                if (dir === "northEast") {
+                    this.player.y -= delta / 1000 * Constants.Player.SPEED;
+                } else if (dir === "northWest") {
+                    this.player.x -= delta  / 1000 * Constants.Player.SPEED;
+                } else if (dir === "southEast") {
+                    this.player.x += delta / 1000 * Constants.Player.SPEED;
+                } else if (dir === "southWest") {
+                    this.player.y += delta / 1000 * Constants.Player.SPEED;
+                }
+
+                // keep in bounds
+                if (this.player.x < 0 || this.player.x >= Constants.Game.TILE_WIDTH * Constants.Game.ROWS - 1 ||
+                    this.player.y < 0 || this.player.y >= Constants.Game.TILE_HEIGHT * Constants.Game.COLS - 1) {
+                    this.player.x = oldX;
+                    this.player.y = oldY;
+                    console.log("Staying in bounds");
+                }
+            }   
 
             // update timer
 

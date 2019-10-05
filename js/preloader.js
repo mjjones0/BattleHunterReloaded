@@ -24,6 +24,7 @@ export default class Preloader extends Phaser.Scene
 
         // load sprites
         this.load.setPath('assets/sprites/');
+        this.load.atlas('hero', 'hero_tutorial.png', 'hero_tutorial.json');
 
         //  load audio
         this.load.setPath('assets/audio/');
@@ -33,6 +34,13 @@ export default class Preloader extends Phaser.Scene
 				this.load.audio('theme_2', [ '06 Saboten.mp3' ]);
 				this.load.audio('theme_gon', [ '09 GON\'s Theme.mp3' ]);
         this.load.audio('theme_results', [ '10 Results.mp3' ]);
+        this.load.audio('ding', ['ding.wav']);
+        this.load.audio('menu_cancel', ['menu_cancel.wav']);
+        this.load.audio('menu_confirm', ['menu_confirm.wav']);
+        this.load.audio('menu_move', ['menu_move.wav']);
+        this.load.audio('tic_toc_click', ['tic_toc_click.wav']);
+        this.load.audio('quick_notice', ['quick_notice.wav']);
+        this.load.audio('med_notice', ['med_notice.wav']);
         
         this.createAnimations();
         

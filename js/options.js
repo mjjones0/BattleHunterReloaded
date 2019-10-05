@@ -21,7 +21,7 @@ export default class MainMenu extends Phaser.Scene
         });
     }
 
-    create ()
+    create()
     {
 		this.add.image(Constants.Game.WIDTH / 2, Constants.Game.HEIGHT / 2, 'background')
             .setScrollFactor(0, 0)

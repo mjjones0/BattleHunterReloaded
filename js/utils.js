@@ -19,6 +19,17 @@ let Utils = {
         }
      
         return array;
+    },
+    fadeOutDestroy : function (scene, gameObject, duration)
+    {
+        scene.tweens.add({
+            targets: gameObject,
+            alpha: {to: 0.0},
+            duration: duration,
+            onComplete: function () {
+                gameObject.destroy();
+            }
+        });
     }
 };
 export default Utils;

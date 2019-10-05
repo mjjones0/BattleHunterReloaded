@@ -83,7 +83,7 @@ export default class MainMenu extends Phaser.Scene
         this.cameras.main.fadeOut(1000);
         this.cameras.main.on('camerafadeoutcomplete', function() {
             this.unbindEventHandlers();
-            this.scene.start('MainGame');
+            this.scene.start('MainGame', { missionType: 'Find the Item' });
 		}, this);
     }
 }

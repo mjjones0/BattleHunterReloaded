@@ -1,5 +1,6 @@
 let Constants = {
 	Player : {
+		SPEED: 200
 	},
 	Game : {
 		WIDTH: 800,
@@ -10,11 +11,14 @@ let Constants = {
 		ROWS: 24,
 		COLS: 16,
 		TILE_WIDTH: 38,
-		TILE_HEIGHT: 38
+		TILE_HEIGHT: 38,
+		THEMES: {'theme_0' : '80\'s memory', 'theme_1' : 'Eyes in mind', 'theme_2' : 'Saboten'}
 	},
 	Depths: {
 		BACKGROUND: -100,
-		UX: 100
+		UX: 100,
+		ACTORS: 0,
+		TILES: -50
 	}
 };
 
