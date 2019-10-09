@@ -7,11 +7,9 @@ let Constants = {
 		HEIGHT: 600,
 		BG_COLOR: '#000000',
 		TITLE: 'Battle Hunter Reloaded',
-		PLAY_STATES: {'INTRO': 0, 'PLAY': 1, 'FINISH': 2},
-		ROWS: 24,
-		COLS: 16,
-		TILE_WIDTH: 38,
-		TILE_HEIGHT: 38,
+		X_LEN: 24,
+		Y_LEN: 16,
+		TILE_SIZE: 38,
 		THEMES: {'theme_0' : '80\'s memory', 'theme_1' : 'Eyes in mind', 'theme_2' : 'Saboten'}
 	},
 	Depths: {
@@ -19,6 +17,9 @@ let Constants = {
 		UX: 100,
 		ACTORS: 0,
 		TILES: -50
+	},
+	Debug: {
+		SKIPINTRO: 1
 	}
 };
 
