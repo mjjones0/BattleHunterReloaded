@@ -54,6 +54,11 @@ const Sounds = {
             this.musics[key].play();
         }
     },
+    stopSound: function(key) {
+        if (this.sounds[key]) {
+            this.sounds[key].stop();
+        }
+    },
     pauseMusic: function(key)
     {
         if (this.musics[key]) {

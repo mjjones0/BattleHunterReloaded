@@ -4,10 +4,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
 {
     STATES = {
         IDLE: 0,
-        PATHFINDING: 1
+        PATHFINDING: 1,
+        OPENING: 2
     };
 
-    constructor (scene, x, y, level, cursorKeys) {
+    constructor (scene, x, y, level, cursorKeys, data) {
         super(scene, x, y, 'hero', '1.png');
 				
         this.setOrigin(0.5, 0.85);
@@ -16,8 +17,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.assignTile(x, y);
-
         this.destX = this.tileX;
         this.destY = this.tileY;
         this.moving = false;
@@ -25,8 +24,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
         this.facing = 'southEast';
         this.state = this.STATES.IDLE;
         this.cursorKeys = cursorKeys;
+        this.scene = scene;
+        this.cd = 0;
+        this.config = data;
+        this.hand = [];
 
         this.setLevel(level);
+        this.assignTile(x, y);
+
+        this.path = [];
 
         this.isAlive = true;
 
@@ -42,12 +48,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
     }
 
     assignTile(x, y) {
-        if (!(x && y)) {
-            this.xTile = Math.floor(Math.random() * Constants.Game.X_LEN);
-            this.yTile = Math.floor(Math.random() * Constants.Game.Y_LEN);
+        console.log("assign tile: " + x + ", " + y);
+        if (x < 0 && y < 0) {
+            this.xTile = Math.floor(Math.random() * this.level.xBorder);
+            this.yTile = Math.floor(Math.random() * this.level.yBorder);
             this.x = this.xTile * Constants.Game.TILE_SIZE;
             this.y = this.yTile * Constants.Game.TILE_SIZE;
-        } else {
+        } else if (x < this.level.xBorder && y < this.level.yBorder) {
             this.xTile = x;
             this.yTile = y;
             this.x = this.xTile * Constants.Game.TILE_SIZE;
@@ -69,25 +76,35 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
         this.anims.pause();
     }
 
-    getFacingDirection() {
+    getMovingDirection() {
         if (this.cursorKeys.right.isDown) {
-            console.log("move right");
             return 'southEast';
         }
         if (this.cursorKeys.down.isDown) {
-            console.log("move down");
             return 'southWest';
         }
         if (this.cursorKeys.up.isDown) {
-            console.log("move up");
             return 'northEast';
         }
         if (this.cursorKeys.left.isDown) {
-            console.log("move left");
             return 'northWest';
         }
 
         return null;
+    }
+
+    setDestination(destX, destY)
+    {
+        if (destX < 0 || destX > this.level.xBorder || destY < 0 || destY > this.level.yBorder) {
+            return;
+        }
+
+        if (this.state != this.STATES.PATHFINDING) {
+            this.state = this.STATES.PATHFINDING;
+            this.destX = destX;
+            this.destY = destY;
+            this.path = this.determinePath();
+        }
     }
 
     tryStartPathFinding(facing) {
@@ -97,15 +114,22 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
         if (facing === "southEast" && this.xTile < xBorder) {
             this.destX = this.xTile + 1;
             this.destY = this.yTile;
-        } else if (facing === "northEast" && this.yTile > 0) {
+        } else if (facing === "northEast" && this.yTile >= 0) {
             this.destX = this.xTile;
             this.destY = this.yTile - 1;
-        } else if (facing === "northWest" && this.xTile > 0) {
+        } else if (facing === "northWest" && this.xTile >= 0) {
             this.destX = this.xTile - 1;
             this.destY = this.yTile;
         } else if (facing === "southWest" && this.yTile < yBorder) {
             this.destX = this.xTile;
             this.destY = this.yTile + 1;
+        }
+
+        if (this.destX < 0 || this.destX > this.level.xBorder || 
+            this.destY < 0 || this.destY > this.level.yBorder || 
+            !this.level.data[this.destX][this.destY]) {
+            this.destX = this.xTile;
+            this.destY = this.yTile;
         }
 
         if (this.destX === this.xTile && this.destY === this.yTile) {
@@ -115,12 +139,28 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
         }
     }
 
+    openChest() {
+        this.state = this.STATES.OPENING;
+    }
+
+    finishChest() {
+        this.state = this.STATES.IDLE;
+    }
+
     update(delta) {
         switch (this.state)
         {
             case this.STATES.IDLE:
             {
-                var dir = this.getFacingDirection();
+                if (this.cd > 0) {
+                    this.cd -= delta;
+
+                    if (this.cd > 0) {
+                        break;
+                    }
+                }
+
+                var dir = this.getMovingDirection();
                 
                 if (dir) {
                     if (this.tryStartPathFinding(dir)) {
@@ -135,22 +175,30 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
             {
                 console.log("Destination: " + this.destX + ", " + this.destY);
                 var moveDir = this.facing;
+
+                if (this.path.length) {
+                    moveDir = this.path[0].dir;
+                }
+
+                var destX = this.path.length ? this.path[0].destX : this.destX;
+                var destY = this.path.length ? this.path[0].destY : this.destY;
+
                 var reachedDestination = false;
 
                 if (moveDir === "northEast") {
                     this.y -= delta / 1000 * Constants.Player.SPEED;
 
-                    if (this.y <= this.destY * Constants.Game.TILE_SIZE) {
-                        this.y = this.destY * Constants.Game.TILE_SIZE;
-                        this.yTile = this.destY;
+                    if (this.y <= destY * Constants.Game.TILE_SIZE) {
+                        this.y = destY * Constants.Game.TILE_SIZE;
+                        this.yTile = destY;
                         reachedDestination = true;
                     }
                 } else if (moveDir === "northWest") {
                     this.x -= delta  / 1000 * Constants.Player.SPEED;
 
-                    if (this.x <= this.destX * Constants.Game.TILE_SIZE) {
+                    if (this.x <= destX * Constants.Game.TILE_SIZE) {
                         this.x = this.destX * Constants.Game.TILE_SIZE;
-                        this.xTile = this.destX;
+                        this.xTile = destX;
                         reachedDestination = true;
                     }
                 } else if (moveDir === "southEast") {
@@ -172,12 +220,32 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
                 }
 
                 if (reachedDestination) {
-                    this.anims.pause();
-                    this.state = this.STATES.IDLE;
+                    if (this.path.length) {
+                        this.path.splice(0, 1);
+                    }
+
+                    if (!this.path.length) {
+                        this.reachDestination();
+                    }
                 }
 
                 break;
             }
+            case this.STATES.OPENING:
+            {
+                // maybe play some animation?
+                break;
+            }
         }
+    }
+
+    reachDestination() {
+        this.anims.pause();
+        this.state = this.STATES.IDLE;
+    }
+
+    runIntoObstacle() {
+        this.reachDestination();
+        this.cd = 250;
     }
 }
