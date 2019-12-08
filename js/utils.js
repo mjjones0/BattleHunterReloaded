@@ -89,6 +89,12 @@ let Utils = {
         }
         
         return array;
+    },
+    getIsoCoordinates(x, y) {
+        var screenX = x - y;
+        var screenY = (x + y) / 2;
+
+        return {x: screenX, y: screenY};
     }
 };
 export default Utils;

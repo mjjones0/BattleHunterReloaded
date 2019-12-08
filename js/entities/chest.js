@@ -58,7 +58,9 @@ export default class Chest extends Phaser.Physics.Arcade.Sprite
         var chest = this;
         var scene = this.scene;
         scene.time.delayedCall(250, function() {
-            Utils.fadeOutDestroy(scene, chest, 1000);
+            Utils.fadeOutDestroy(scene, chest, 1000, function () {
+                scene.renderer.removeEntity(chest);
+            });
             onComplete();
         }, [], scene);
     }

@@ -23,7 +23,7 @@ let Constants = {
 		EFFECTS: 5100
 	},
 	Debug: {
-		SKIPINTRO: 1
+		SKIPINTRO: 0
 	}
 };
 
