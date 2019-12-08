@@ -269,7 +269,7 @@ export default class MainGame extends Phaser.Scene
 
 
 
-    // STATE MACHINE UTILITY FUNCTIONS
+    // STATE MACHINE
     changeSceneState(newSceneState)
     {
         this.sceneState = newSceneState;
@@ -513,7 +513,7 @@ export default class MainGame extends Phaser.Scene
     }
 
 
-    // STATE MACHINE EVENT HANDLERS
+    // STATE MACHINE INPUT HANDLERS
     handleIsometricScenePointerDown(event) 
     {
         if (!this.inputEnabled || this.backDialog.visible()) {
@@ -538,7 +538,7 @@ export default class MainGame extends Phaser.Scene
         }
     }
 
-    
+
     // UPDATE STATE MACHINE
     update(time, delta)
     {
