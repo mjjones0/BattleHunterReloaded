@@ -95,6 +95,20 @@ let Utils = {
         var screenY = (x + y) / 2;
 
         return {x: screenX, y: screenY};
+    },
+    // SCENE UTILS
+    getScreenCoordinates(entity, camera, screenWidth, screenHeight) {
+        //var camera = this.cameras.main;
+        var screenX = entity.x - entity.y + screenWidth / 2 - camera.scrollX;
+        var screenY = (entity.x + entity.y) / 2 + screenHeight / 2 - camera.scrollY;
+        return {x: screenX, y: screenY};
+    },
+    getScrollForTile(x, y, tileSize) 
+    {
+        var cartX = x * tileSize;
+        var cartY = y * tileSize;
+
+        return this.getIsoCoordinates(cartX, cartY);
     }
 };
 export default Utils;

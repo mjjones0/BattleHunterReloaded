@@ -18,8 +18,7 @@ import Deck from './views/deck.js';
 
 export default class MainGame extends Phaser.Scene
 {
-    // GAMEPLAY CONSTANTS
-    SCENE_STATE = {
+    SCENE_STATES = {
         INTRO: 0,
         PLAY: 1,
         FINISH: 2
@@ -32,7 +31,6 @@ export default class MainGame extends Phaser.Scene
         SHOW_ATTACK_RANGE: 4
     }
 
-    // CREATE GAME SCENE
     constructor()
     {
         super('MainGame');
@@ -40,12 +38,6 @@ export default class MainGame extends Phaser.Scene
 
     preload() 
     {
-        this.load.scenePlugin({
-            key: 'rexuiplugin',
-            url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/plugins/dist/rexuiplugin.min.js',
-            sceneKey: 'rexUI'
-        });
-
         Sounds.addMusic('theme_0',          this.sound.add('theme_0'));
         Sounds.addMusic('theme_1',          this.sound.add('theme_1'));
         Sounds.addMusic('theme_2',          this.sound.add('theme_2'));
@@ -94,7 +86,7 @@ export default class MainGame extends Phaser.Scene
         this.input.keyboard.on('keydown-E', this.testDefend, this);
         this.input.keyboard.on('keydown-T', this.testRest, this);
 
-        this.input.on('pointerdown', this.handleIsometricScenePointerDown, this);
+        //this.input.on('pointerdown', this.handleIsometricScenePointerDown, this);
         this.cursorKeys = this.input.keyboard.createCursorKeys();
     }
 
@@ -136,7 +128,7 @@ export default class MainGame extends Phaser.Scene
                         continue;
                     }
 
-                    tile = this.add.sprite(xx * Constants.Game.TILE_SIZE, yy * Constants.Game.TILE_SIZE, 'autumn')
+                    tile = this.add.sprite(xx * Constants.Game.TILE_SIZE, yy * Constants.Game.TILE_SIZE, 'yellow')
                         .setDepth(Constants.Depths.TILES)
                         .setOrigin(0.5, 0.25)
                         .setScale(0.64, 0.64);
@@ -238,13 +230,7 @@ export default class MainGame extends Phaser.Scene
                     .setDepth(Constants.Depths.BACKGROUND)
                     .setOrigin(0.5, 0.5);
 
-        this.backDialog = new BackDialog(this, Constants.Game.WIDTH / 2, Constants.Game.HEIGHT / 2);
-        this.backDialog.setConfirmCallback((function() {
-            this.exitGame();
-        }).bind(this));
-        this.backDialog.setDenyCallback((function() {
-            this.backDialog.hide();
-        }).bind(this));
+        this.backDialog = new BackDialog(this, Constants.Game.WIDTH / 2, Constants.Game.HEIGHT / 2, this.hideBackDialog.bind(this), this.exitGame.bind(this));
 
         this.actionsUI = new Actions(this);
         this.actionsUI.create();
@@ -308,11 +294,11 @@ export default class MainGame extends Phaser.Scene
         var scene = this;
 
         // tween camera around map
-        var topTileScroll = this.getScrollForTile(0, 0);
-        var rightTileScroll = this.getScrollForTile(this.level.xBorder - 1, 0);
-        var downTileScroll = this.getScrollForTile(this.level.xBorder - 1, this.level.yBorder - 1);
-        var leftTileScroll = this.getScrollForTile(0, this.level.yBorder - 1);
-        var playerTileScroll = this.getScrollForTile(this.player.xTile, this.player.yTile);
+        var topTileScroll = Utils.getScrollForTile(0, 0, Constants.Game.TILE_SIZE);
+        var rightTileScroll = Utils.getScrollForTile(this.level.xBorder - 1, 0, Constants.Game.TILE_SIZE);
+        var downTileScroll = Utils.getScrollForTile(this.level.xBorder - 1, this.level.yBorder - 1, Constants.Game.TILE_SIZE);
+        var leftTileScroll = Utils.getScrollForTile(0, this.level.yBorder - 1, Constants.Game.TILE_SIZE);
+        var playerTileScroll = Utils.getScrollForTile(this.player.xTile, this.player.yTile, Constants.Game.TILE_SIZE);
         var panCameraRight = {
             targets: this.cameras.main,
             scrollX: {from: topTileScroll.x, to: rightTileScroll.x},
@@ -434,8 +420,8 @@ export default class MainGame extends Phaser.Scene
         this.turnTimerUI.start();
 
         // get player
-        this.controllingEntity =  this.turnOrder.pop();
-        var entityTileScroll = this.getScrollForTile(this.controllingEntity.xTile, this.controllingEntity.yTile);
+        this.controllingEntity = this.player;// this.turnOrder.pop();
+        var entityTileScroll = Utils.getScrollForTile(this.controllingEntity.xTile, this.controllingEntity.yTile, Constants.Game.TILE_SIZE);
 
         // focus camera on player
         this.cameras.main.scrollX = entityTileScroll.x;
@@ -451,7 +437,8 @@ export default class MainGame extends Phaser.Scene
         switch (this.turnState) {
             case this.TURN_STATES.TURN_IDLE:
                 // show actions UI
-
+                this.showActionUI = true;
+                this.actionsUI.show();
                 break;
             case this.TURN_STATES.SHOW_CARDS:
                 // show card selection UI
@@ -481,6 +468,7 @@ export default class MainGame extends Phaser.Scene
 
     exitGame()
     {
+        console.log("Exiting game!");
         var scene = this;
         this.transitioningOut = true;
         this.backDialog.hide();
@@ -516,7 +504,7 @@ export default class MainGame extends Phaser.Scene
     // STATE MACHINE INPUT HANDLERS
     handleIsometricScenePointerDown(event) 
     {
-        if (!this.inputEnabled || this.backDialog.visible()) {
+        if (!this.inputEnabled) {
             console.log('blocked input');
             return;
         }
@@ -596,13 +584,11 @@ export default class MainGame extends Phaser.Scene
         for (var i = 0; i < this.chests.length; ++i) {
             var chest = this.chests[i];
 
-            if (this.player.state == this.player.STATES.PATHFINDING && 
-                chest.alive && 
-                this.player.destX == chest.xTile &&
-                this.player.destY == chest.yTile) {
-                    for (var i = 0; i < this.enemies.length; ++i) {
-                        var enemy = this.enemies[i];
-                    }
+            if (this.player.state == this.player.STATES.PATHFINDING && chest.alive && 
+                this.player.destX == chest.xTile && this.player.destY == chest.yTile) {
+                //for (var i = 0; i < this.enemies.length; ++i) {
+                //    var enemy = this.enemies[i];
+                //}
                 var player = this.player;
                 var onComplete = function () {
                     Sounds.playSound('ding');
@@ -635,16 +621,16 @@ export default class MainGame extends Phaser.Scene
     {
         var tiles =
         [
-        [1,1,1,1,1,1,1,1,0,0,0,0,0,0,0],
-        [1,1,1,1,1,1,1,1,0,1,1,1,1,1,1],
-        [1,1,1,2,1,1,1,1,0,1,1,1,1,1,1],
-        [1,1,1,1,3,1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,3,1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,3,1,1,1,1,1,1,1,1,1,1],
-        [1,1,1,2,1,1,1,1,0,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,0,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,0,1,1,1,1,1,1],
-        [0,0,0,0,0,0,0,0,0,1,1,1,1,1,1]];
+        [1,1,1,1,1,1,0,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,0,1,1,1,1,1,1],
+        [1,1,2,1,1,1,0,0,1,1,1,1,1,1],
+        [1,1,1,3,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,3,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,3,1,1,1,1,1,1,1,1,1,1],
+        [1,1,2,1,1,1,0,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,0,1,1,1,1,1,1]];
 
         return tiles;
     }
@@ -814,6 +800,12 @@ export default class MainGame extends Phaser.Scene
     }
 
 
+    hideBackDialog() {
+        console.log("Hiding back dialog!");
+        this.backDialog.hide();
+    }
+
+
 
     // testing the effects
     testBasicAttack() {
@@ -873,26 +865,5 @@ export default class MainGame extends Phaser.Scene
                 scene.rollingDie = false;
             });
         }
-    }
-
-
-
-    // SCENE UTILS
-    getScreenCoordinates(entity) {
-        var camera = this.cameras.main;
-        var screenX = entity.x - entity.y + Constants.Game.WIDTH / 2 - camera.scrollX;
-        var screenY = (entity.x + entity.y) / 2 + Constants.Game.HEIGHT / 2 - camera.scrollY;
-        return {x: screenX, y: screenY};
-    }
-
-    getScrollForTile(x, y) 
-    {
-        var cartX = x * Constants.Game.TILE_SIZE;
-        var cartY = y * Constants.Game.TILE_SIZE;
-
-        var scrollX = cartX - cartY;
-        var scrollY = (cartX + cartY) / 2;
-
-        return { x: scrollX, y: scrollY };
     }
 }

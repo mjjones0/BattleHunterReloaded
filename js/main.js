@@ -3,7 +3,7 @@ import Preloader from './preloader.js';
 import MainMenu from './menu.js';
 import MainGame from './game.js';
 import Options from './options.js';
-import Constants from './constants.js'
+import Constants from './constants.js';
 
 const config = {
     type: Phaser.AUTO,

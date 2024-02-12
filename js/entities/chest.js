@@ -67,7 +67,7 @@ export default class Chest extends Phaser.Physics.Arcade.Sprite
 
     getLoot(player) {
         // play animation for the loot on the scene
-        var screenCoords = this.scene.getScreenCoordinates(this);
+        var screenCoords = Utils.getScreenCoordinates(this, this.scene.cameras.main, Constants.Game.WIDTH, Constants.Game.HEIGHT);
         this.lootIcon.x = screenCoords.x;
         this.lootIcon.y = screenCoords.y;
         this.lootIcon.setVisible(true);

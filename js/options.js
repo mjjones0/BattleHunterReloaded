@@ -1,47 +1,74 @@
 import Constants from './constants.js';
 import Sounds from './sounds.js';
+import Slider from './views/slider.js';
 
-const COLOR_PRIMARY = 0x4e342e;
-const COLOR_LIGHT = 0x7b5e57;
-const COLOR_DARK = 0x260e04;
-
-export default class MainMenu extends Phaser.Scene
+export default class Options extends Phaser.Scene
 {
     constructor ()
     {
         super('Options');
     }
 
-    preload() 
-    {
-        this.load.scenePlugin({
-            key: 'rexuiplugin',
-            url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/plugins/dist/rexuiplugin.min.js',
-            sceneKey: 'rexUI'
-        });
-    }
+    preload() {}
 
     create()
     {
-		this.add.image(Constants.Game.WIDTH / 2, Constants.Game.HEIGHT / 2, 'background')
-            .setScrollFactor(0, 0)
-            .setDepth(Constants.Depths.BACKGROUND);
-				
-        this.titleText = this.add.text(Constants.Game.WIDTH / 2, 100, Constants.Game.TITLE, 
-            { fontFamily: 'Arial', fontSize: 48, color: '#e3f2ed' });
-        this.titleText.setOrigin(0.5);
-        this.titleText.setStroke('#203c5b', 6);
-        this.titleText.setShadow(2, 2, '#2d2d2d', 4, true, false);
+        let size = {'width': this.cameras.main.width, 'height': this.cameras.main.height};
 
-        this.backText = this.add.text(Constants.Game.WIDTH / 2, Constants.Game.HEIGHT - 148, 
-			'Back', { fontFamily: 'Arial', fontSize: 74, color: '#e3f2ed' }).setInteractive();
+		this.bg = this.add.image(size.width / 2, size.height / 2, 'background')
+            .setScrollFactor(0, 0)
+            .setScale(size.width / 1024, size.height / 1024)
+            .setDepth(Constants.Depths.BACKGROUND);
+
+        this.backText = this.add.text(size.width / 2, size.height * 0.8, 
+			'Back', { fontFamily: 'Arial', fontSize: 48, color: '#e3f2ed' }).setInteractive();
         this.backText.setOrigin(0.5);
         this.backText.setStroke('#203c5b', 6);
         this.backText.setShadow(2, 2, '#2d2d2d', 4, true, false);
 
+        var scene = this;
+        this.backText.on('pointerover',function(pointer){
+            scene.backText.setScale(1.2, 1.2);
+        });
+        this.backText.on('pointerout',function(pointer){
+            scene.backText.setScale(1, 1);
+        });
+
         this.bindEventHandlers();
 
         this.setupOptions();
+
+        this.scale.on('resize', (resize) => {
+            this.resizeAll(resize);
+        });
+        this.resizeAll(size);
+    }
+
+    resizeAll(size) {
+        if (size && this.cameras && this.cameras.main) {
+            this.bg.setPosition(size.width / 2, size.height / 2);
+            this.bg.setScale(size.width / this.bg.texture.source[0].width, size.height / this.bg.texture.source[0].height);
+
+            let fontScale = 48 * (size.height / Constants.Game.HEIGHT);
+
+            this.backText.setPosition(size.width / 2, size.height * 0.8);
+            this.backText.setFontSize(fontScale);
+
+            this.musicText.setPosition(size.width / 2, size.height / 2 - fontScale * 2);
+            this.musicText.setFontSize(fontScale);
+
+            this.soundText.setPosition(size.width / 2, size.height / 2 + fontScale / 8);
+            this.soundText.setFontSize(fontScale);
+
+            let barWidth = this.musicSlider.width;
+            let barTextHeight = this.musicVolumeValue.displayHeight;
+
+            this.musicVolumeValue.setPosition(size.width / 2 - barWidth / 2, size.height / 2 - fontScale - barTextHeight / 2);
+            this.soundVolumeValue.setPosition(size.width / 2 - barWidth / 2, size.height / 2 + fontScale - barTextHeight / 2);
+
+            this.soundSlider.setPosition(size.width / 2, size.height / 2 + fontScale);
+            this.musicSlider.setPosition(size.width / 2, size.height / 2 - fontScale);
+        }
     }
 
     bindEventHandlers()
@@ -61,68 +88,50 @@ export default class MainMenu extends Phaser.Scene
 
     setupOptions()
     {
-        this.musicText = this.add.text(Constants.Game.WIDTH / 2 - 40, Constants.Game.HEIGHT / 2 - 78, 
+        let size = {'width': this.cameras.main.width, 'height': this.cameras.main.height};
+
+        this.musicText = this.add.text(size.width / 2 - 40, size.height / 2 - 78, 
             'Music Volume', { fontFamily: 'Arial', fontSize: 36, color: '#e3f2ed' }).setInteractive();
         this.musicText.setOrigin(0.5);
         this.musicText.setStroke('#203c5b', 6);
         this.musicText.setShadow(2, 2, '#2d2d2d', 4, true, false);
-        var musicVolumeValue = this.add.text(Constants.Game.WIDTH / 2 - 150, Constants.Game.HEIGHT / 2 - 50, '')
+
+        let musicVol = Sounds.getMusicVolume() * 100;
+        let soundVol = Sounds.getSoundVolume() * 100;
+
+        this.musicVolumeValue = this.add.text(size.width / 2 - 150, size.height / 2 - 50, musicVol, { fontFamily: 'Arial', fontSize: 16, color: '#e3f2ed' })
                                 .setDepth(Constants.Depths.UX);
-        this.rexUI.add.slider({
-                x: Constants.Game.WIDTH / 2,
-                y: Constants.Game.HEIGHT / 2 - 40,
-                width: 300,
-                height: 20,
-                orientation: 'y',
-                value: Sounds.getMusicVolume(),
 
-                track: this.rexUI.add.roundRectangle(0, 0, 0, 0, 10, COLOR_DARK),
-                indicator: this.rexUI.add.roundRectangle(0, 0, 0, 0, 10, COLOR_PRIMARY),
-                thumb: this.rexUI.add.roundRectangle(0, 0, 0, 0, 10, COLOR_PRIMARY),
+        var scene = this;
+        this.musicSlider = new Slider(this, size.width / 2, size.height / 2 - 40, 300, 20, 0, 100);
+        this.musicSlider.setValue(musicVol);
+        let slider = this.musicSlider;
+        this.musicSlider.notch.on('dragend', () => {
+                scene.musicVolumeValue.text = Math.floor(slider.getValue()).toString();
+                Sounds.updateMusicVolume(slider.getValue() / 100);
+        });
 
-                input: 'click', // 'drag'|'click'
-                valuechangeCallback: function (value) {
-                    musicVolumeValue.text = Math.floor(value * 100).toString();
-                    Sounds.updateMusicVolume(value);
-                },
-            })
-            .setDepth(Constants.Depths.UX - 1)
-            .layout();
-
-        this.soundText = this.add.text(Constants.Game.WIDTH / 2 - 40, Constants.Game.HEIGHT / 2 + 4, 
+        this.soundText = this.add.text(size.width / 2 - 40, size.height / 2 + 4, 
             'Sound Volume', { fontFamily: 'Arial', fontSize: 36, color: '#e3f2ed' }).setInteractive();
         this.soundText.setOrigin(0.5);
         this.soundText.setStroke('#203c5b', 6);
         this.soundText.setShadow(2, 2, '#2d2d2d', 4, true, false);
-        var soundVolumeValue = this.add.text(Constants.Game.WIDTH / 2 - 150, Constants.Game.HEIGHT / 2 + 30, '')
+        this.soundVolumeValue = this.add.text(size.width / 2 - 150, size.height / 2 + 30, soundVol, { fontFamily: 'Arial', fontSize: 16, color: '#e3f2ed' })
                                 .setDepth(Constants.Depths.UX);
-        this.rexUI.add.slider({
-                x: Constants.Game.WIDTH / 2,
-                y: Constants.Game.HEIGHT / 2 + 40,
-                width: 300,
-                height: 20,
-                orientation: 'y',
-                value: Sounds.getSoundVolume(),
 
-                track: this.rexUI.add.roundRectangle(0, 0, 0, 0, 10, COLOR_DARK),
-                indicator: this.rexUI.add.roundRectangle(0, 0, 0, 0, 10, COLOR_PRIMARY),
-                thumb: this.rexUI.add.roundRectangle(0, 0, 0, 0, 10, COLOR_PRIMARY),
-
-                input: 'click', // 'drag'|'click'
-                valuechangeCallback: function (value) {
-                    soundVolumeValue.text = Math.floor(value * 100).toString();
-                    Sounds.updateSoundVolume(value);
-                },
-            })
-            .setDepth(Constants.Depths.UX - 1)
-            .layout();
-
+        this.soundSlider = new Slider(this, size.width / 2, size.height / 2 + 40, 300, 20, 0, 100);
+        this.soundSlider.setValue(soundVol);
+        let sslider  = this.soundSlider;
+        this.soundSlider.notch.on('dragend', () => {
+                scene.soundVolumeValue.text = Math.floor(sslider.getValue()).toString();
+                Sounds.updateSoundVolume(sslider.getValue() / 100);
+        });
     }
 
     goBack() 
     {
         this.unbindEventHandlers();
-        this.scene.stop();
         this.scene.resume('MainMenu');
+        this.scene.stop();
     }
 }

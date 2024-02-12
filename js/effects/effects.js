@@ -77,7 +77,7 @@ export default class Effects
         this.damageText.setVisible(true);
         this.damageText.setText(value.toString());
         this.damageText.setScale(config.scale, config.scale);
-        var screenCoords = this.scene.getScreenCoordinates(entity);
+        var screenCoords = Utils.getScreenCoordinates(entity, this.scene.cameras.main, Constants.Game.WIDTH, Constants.Game.HEIGHT);
         this.damageText.x = screenCoords.x + config.offsetX;
         this.damageText.y = screenCoords.y + config.offsetY;
         this.damageText.setTint(config.color);
@@ -106,7 +106,7 @@ export default class Effects
         this.flicker(Phaser.Display.Color.HexStringToColor('#ffffff'), 
                      Phaser.Display.Color.HexStringToColor('#00ff00'), entity, 400);
 
-        var screenCoords = this.scene.getScreenCoordinates(entity);
+        var screenCoords = Utils.getScreenCoordinates(entity, this.scene.cameras.main, Constants.Game.WIDTH, Constants.Game.HEIGHT);
         this.restIcon.x = screenCoords.x + offsetX;
         this.restIcon.y = screenCoords.y + offsetY;
         this.restIcon.setVisible(true);
@@ -127,7 +127,7 @@ export default class Effects
         this.flicker(Phaser.Display.Color.HexStringToColor('#ffffff'), 
                      Phaser.Display.Color.HexStringToColor('#ffff00'), entity, 400);
 
-        var screenCoords = this.scene.getScreenCoordinates(entity);
+        var screenCoords = Utils.getScreenCoordinates(entity, this.scene.cameras.main, Constants.Game.WIDTH, Constants.Game.HEIGHT);
         this.defendIcon.x = screenCoords.x + offsetX;
         this.defendIcon.y = screenCoords.y + offsetY;
         this.defendIcon.setVisible(true);
@@ -152,7 +152,7 @@ export default class Effects
         this.flicker(Phaser.Display.Color.HexStringToColor('#ffffff'), 
                      Phaser.Display.Color.HexStringToColor('#ff0000'), entity, 250);
 
-        var screenCoords = this.scene.getScreenCoordinates(entity);
+        var screenCoords = Utils.getScreenCoordinates(entity, this.scene.cameras.main, Constants.Game.WIDTH, Constants.Game.HEIGHT);
         this.slashEffect.x = screenCoords.x + offsetX;
         this.slashEffect.y = screenCoords.y + offsetY;
 

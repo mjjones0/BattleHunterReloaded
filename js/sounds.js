@@ -9,13 +9,23 @@ const Sounds = {
             storage.setItem('musicVolume', this.musicVolume);
         } else {
             console.log('restoring stored volume');
-            this.musicVolume = storage.getItem('musicVolume');
+            var val = storage.getItem('musicVolume');
+            if (!val || val == "NaN") {
+                this.musicVolume = this.musicVolume;
+            } else {
+                this.musicVolume = val;
+            }
             console.log(this.musicVolume);
         }
         if (!storage.getItem('soundVolume')) {
             storage.setItem('soundVolume', this.soundVolume);
         } else {
-            this.soundVolume = storage.getItem('soundVolume');
+            var val = storage.getItem('soundVolume');
+            if (!val || val == "NaN") {
+                this.soundVolume = this.soundVolume;
+            } else {
+                this.soundVolume = val;
+            }
         }
     },
     updateStorage: function() {

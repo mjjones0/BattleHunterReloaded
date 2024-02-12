@@ -1,95 +1,98 @@
 import Constants from '../constants.js';
-import Utils from '../utils.js';
 
 export default class BackDialog
 {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, cancelCallback, backCallback) {
         this.scene = scene;
         this.x = x;
         this.y = y;
+        this.cancelCallback = cancelCallback;
+        this.backCallback = backCallback;
         this.create();
     }
 
+    createButton(text, callback) {
+        const button = this.scene.add.text(0, 0, text, {
+            fontSize: '20px',
+            backgroundColor: '#9b8738',
+            padding: { x: 10, y: 5 },
+            align: 'center'
+        }).setInteractive();
+
+        button.setScrollFactor(0, 0);
+        button.setDepth(Constants.Game.BACK_DIALOG);
+
+        button.on('pointerdown', () => {
+            callback();
+        });
+
+        button.on('pointerover', () => {
+            button.setStyle({ fill: '#ff0' });
+        });
+
+        button.on('pointerout', () => {
+            button.setStyle({ fill: '#fff' });
+        });
+
+        return button;
+    }
+
     create() {
-        var dialog = this.scene.rexUI.add.dialog({
-            x: this.x,
-            y: this.y,
+        this.container = this.scene.add.container(this.x, this.y);
 
-            background: this.scene.rexUI.add.roundRectangle(0, 0, 100, 100, 20, 0x1565c0),
+        const background = this.scene.add.rectangle(0, 0, 300, 200, 0x8a7627);
+        this.container.add(background);
 
-            content: this.scene.add.text(0, 0, 'Go back to the main menu?', {
-                fontSize: '24px'
-            }),
+        const title = this.scene.add.text(0, -80, 'Escape Menu', {
+            fontSize: '24px',
+            color: '#fff'
+        }).setOrigin(0.5, 0.5);
+        this.container.add(title);
 
-            actions: [
-                Utils.createLabel(this.scene, 'Yes'),
-                Utils.createLabel(this.scene, 'No')
-            ],
+        const buttonCancel  = this.createButton('Cancel', this.cancelCallback);
+        const buttonBack    = this.createButton('Back to Main Menu', this.backCallback);
 
-            space: {
-                title: 25,
-                content: 25,
-                action: 15,
+        // Position buttons
+        buttonCancel.setPosition(-50, -40);
+        buttonBack.setPosition(-100, 40);
 
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: 20,
-            },
+        this.container.add([buttonCancel, buttonBack]);
 
-            align: {
-                actions: 'right', // 'center'|'left'|'right'
-            },
+        // Initial visibility
+        this.container.setVisible(false);
 
-            expand: {
-                content: false, // Content is a pure text object
-            }
-        })
-            .layout()
-            .popUp(1000);
-
-        this.print = this.scene.add.text(0, 0, '');
-        dialog
-            .on('button.click', function (button, groupName, index, pointer, event) {
-                if (index == 0) {
-                    this.confirmCallback();
-                } else if (index == 1) {
-                    this.denyCallback();
-                }
-                event.stopPropagation();
-            }, this)
-            .on('button.over', function (button, groupName, index, pointer, event) {
-                button.getElement('background').setStrokeStyle(1, 0xffffff);
-                event.stopPropagation();
-            })
-            .on('button.out', function (button, groupName, index, pointer, event) {
-                button.getElement('background').setStrokeStyle();
-                event.stopPropagation();
-            });
-        
-        this.view = dialog;
-        this.view.setVisible(false);
-        this.view.setScrollFactor(0, 0);
-        this.view.setDepth(Constants.Depths.UX);
+        // Set depth
+        this.container.setScrollFactor(0, 0);
+        this.container.setDepth(Constants.Depths.BACK_DIALOG);
     }
 
-    setConfirmCallback(callback) {
-        this.confirmCallback = callback;
+    resize(size) {
+        if (size) {
+            let heightRatio = size.height / Constants.Game.HEIGHT;
+            let widthRatio = size.width / Constants.Game.WIDTH;
+            let smallerRatio = Math.min(heightRatio, widthRatio);
+            this.container.setScale(smallerRatio, smallerRatio);
+            this.container.setPosition(size.width / 2, size.height / 2);
+        }
     }
 
-    setDenyCallback(callback) {
-        this.denyCallback = callback;
+    setBackCallback(callback) {
+        this.backCallback = callback;
+    }
+
+    setCancelCallback(callback) {
+        this.cancelCallback = callback;
     }
 
     visible() {
-        return this.view.visible;
+        return this.container.visible;
     }
 
     show() {
-        this.view.setVisible(true);
+        this.container.setVisible(true);
     }
 
     hide() {
-        this.view.setVisible(false);
+        this.container.setVisible(false);
     }
 }

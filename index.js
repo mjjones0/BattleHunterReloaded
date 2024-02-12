@@ -9,5 +9,6 @@ app.get('/',function(req, res) {
 app.use('/assets',express.static(__dirname + '/assets'));
 app.use('/js',express.static(__dirname + '/js'));
 
-serv.listen(process.env.PORT || 2000);
-console.log("Server started.");
+var port = process.env.PORT || 2000;
+serv.listen(port);
+console.log("Server started on port: " + port.toString());

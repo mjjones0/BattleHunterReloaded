@@ -20,7 +20,8 @@ let Constants = {
 		UX_CARD: 5050,
 		ACTORS: 0,
 		TILES: -5000,
-		EFFECTS: 5100
+		EFFECTS: 5100,
+		BACK_DIALOG: 6000,
 	},
 	Debug: {
 		SKIPINTRO: 0

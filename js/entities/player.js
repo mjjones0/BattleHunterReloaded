@@ -5,7 +5,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
     STATES = {
         IDLE: 0,
         PATHFINDING: 1,
-        OPENING: 2
+        OPENING: 2,
+        MENU: 3
     };
 
     constructor (scene, x, y, level, cursorKeys, data) {
@@ -137,6 +138,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite
         } else {
             return true;
         }
+    }
+
+    openMenu() {
+        this.state = this.STATES.MENU;
     }
 
     openChest() {
